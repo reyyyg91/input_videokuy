@@ -1,0 +1,38 @@
+# Flutter
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Testing
+test/
+
+# Android/iOS (tidak diperlukan untuk web build)
+android/
+ios/
+macos/
+linux/
+windows/
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# Environment (akan di-handle oleh Railway)
+# .env  # Uncomment jika Anda ingin exclude .env
