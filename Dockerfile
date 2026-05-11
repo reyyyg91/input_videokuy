@@ -11,7 +11,7 @@ RUN flutter pub get
 COPY . .
 
 # Build Flutter web
-RUN flutter build web --release
+RUN flutter build web --release --pwa-strategy=none
 
 # Stage 2: Serve dengan nginx
 FROM nginx:alpine
