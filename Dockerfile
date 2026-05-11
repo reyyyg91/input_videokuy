@@ -16,12 +16,14 @@ RUN flutter build web --release
 # Stage 2: Serve dengan nginx
 FROM nginx:alpine
 
+# Install envsubst untuk ganti variable
+RUN apk add --no-cache gettext
+
 # Copy hasil build ke nginx
 COPY --from=builder /app/build/web /usr/share/nginx/html
 
-# Copy nginx config (optional)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config template
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Script untuk ganti PORT dan jalankan nginx
+CMD ["sh", "-c", "envsubst '\${PORT}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

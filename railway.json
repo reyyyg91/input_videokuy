@@ -1,13 +1,10 @@
 {
-  "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "nginx -g 'daemon off;'",
     "healthcheckPath": "/",
-    "healthcheckPort": 80,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
