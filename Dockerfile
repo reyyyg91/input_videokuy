@@ -22,6 +22,9 @@ RUN apk add --no-cache gettext
 # Copy hasil build ke nginx
 COPY --from=builder /app/build/web /usr/share/nginx/html
 
+# Copy runtime config template (akan digenerate jadi config.js saat container start)
+COPY config.js.template /usr/share/nginx/html/config.js.template
+
 # Copy nginx config template
 COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 

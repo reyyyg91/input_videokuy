@@ -6,6 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
+import 'web_env_stub.dart' if (dart.library.html) 'web_env_web.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
@@ -14,6 +16,8 @@ void main() async {
 
 /// ================= BASE URL API =================
 String get baseUrl {
+  final fromWeb = getWebBaseApi();
+  if (fromWeb != null && fromWeb.isNotEmpty) return fromWeb;
   return dotenv.env['BASE_API'] ?? 'http://videokuy.test/api/';
 }
 
