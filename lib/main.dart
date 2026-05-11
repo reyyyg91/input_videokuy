@@ -4,13 +4,18 @@ import 'package:http/http.dart' as http;
 import 'package:video_player/video_player.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(const MyApp());
 }
 
-/// ================= BASE URL API (RAILWAY) =================
-const String baseUrl = "https://videokuy-production.up.railway.app/";
+/// ================= BASE URL API =================
+String get baseUrl {
+  return dotenv.env['BASE_API'] ?? 'http://videokuy.test/api/';
+}
 
 String get mediaBaseUrl {
   return baseUrl;
@@ -92,7 +97,12 @@ class _VideoGalleryPageState extends State<VideoGalleryPage> {
 
   String imageUrl(String fileName) {
     if (fileName.isEmpty) return "";
-    
+
+    // Jika sudah berupa URL lengkap (Cloudinary), gunakan langsung
+    if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
+      return fileName;
+    }
+
     // Karena file thumbnail disimpan di folder "../thumbnail/"
     // dan API di Railway, kita gunakan path langsung
     return "${mediaBaseUrl}thumbnail/$fileName";
@@ -100,7 +110,12 @@ class _VideoGalleryPageState extends State<VideoGalleryPage> {
 
   String videoUrl(String fileName) {
     if (fileName.isEmpty) return "";
-    
+
+    // Jika sudah berupa URL lengkap (Cloudinary), gunakan langsung
+    if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
+      return fileName;
+    }
+
     // Karena file video disimpan di folder "../video/"
     return "${mediaBaseUrl}video/$fileName";
   }
@@ -519,7 +534,7 @@ class _UploadPageState extends State<UploadPage> {
     try {
       var req = http.MultipartRequest(
         "POST",
-        Uri.parse("${baseUrl}upload_data.php"),
+        Uri.parse("${baseUrl}add_data.php"),
       );
 
       req.fields["title"] = title.text;
@@ -542,6 +557,19 @@ class _UploadPageState extends State<UploadPage> {
 
       var res = await req.send();
       var responseData = await res.stream.bytesToString();
+      // Cek jika responseData bukan JSON (misal error HTML)
+      if (responseData.trim().startsWith('<')) {
+        debugPrint("UPLOAD ERROR: Server mengembalikan HTML, bukan JSON.\n$responseData");
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Upload gagal: Server error atau endpoint salah. Cek koneksi dan API upload_data.php."),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => loading = false);
+        return;
+      }
       var responseJson = json.decode(responseData);
 
       if (!mounted) return;
