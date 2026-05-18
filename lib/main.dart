@@ -26,7 +26,6 @@ String get mediaBaseUrl {
 }
 
 /// True jika server mengembalikan JSON info/router (bukan hasil CRUD sungguhan).
-/// Deploy Railway Anda saat ini membalas ini untuk semua path termasuk upload/get.
 bool isPlaceholderApiInfo(dynamic json) {
   return json is Map && json["endpoints"] is List;
 }
@@ -49,7 +48,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// ================= HOME =================
+/// ================= HOME (RESPONSIVE GRID) =================
 
 class VideoGalleryPage extends StatefulWidget {
   const VideoGalleryPage({super.key});
@@ -101,26 +100,17 @@ class _VideoGalleryPageState extends State<VideoGalleryPage> {
 
   String imageUrl(String fileName) {
     if (fileName.isEmpty) return "";
-
-    // Jika sudah berupa URL lengkap (Cloudinary), gunakan langsung
     if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
       return fileName;
     }
-
-    // Karena file thumbnail disimpan di folder "../thumbnail/"
-    // dan API di Railway, kita gunakan path langsung
     return "${mediaBaseUrl}thumbnail/$fileName";
   }
 
   String videoUrl(String fileName) {
     if (fileName.isEmpty) return "";
-
-    // Jika sudah berupa URL lengkap (Cloudinary), gunakan langsung
     if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
       return fileName;
     }
-
-    // Karena file video disimpan di folder "../video/"
     return "${mediaBaseUrl}video/$fileName";
   }
 
@@ -266,85 +256,91 @@ class _VideoGalleryPageState extends State<VideoGalleryPage> {
               ),
             )
           : videos.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.video_library_outlined,
-                    size: 80,
-                    color: Colors.grey.shade400,
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.video_library_outlined,
+                        size: 80,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        "Belum ada video",
+                        style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Tekan tombol + untuk menambahkan video",
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    "Belum ada video",
-                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Tekan tombol + untuk menambahkan video",
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-                  ),
-                ],
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: videos.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.8,
-              ),
-              itemBuilder: (context, i) {
-                final v = videos[i];
-                final thumbUrl = imageUrl(v["thumbnail"]);
-                final videoUrlPath = videoUrl(v["video"]);
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    // Responsive: 1 kolom di mobile (lebar < 600), 2 kolom di web/tablet
+                    int crossAxisCount = constraints.maxWidth < 600 ? 1 : 2;
+                    double aspectRatio = crossAxisCount == 1 ? 1.0 : 0.8;
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PlayerPage(
-                          url: videoUrlPath,
-                          title: v["title"],
-                        ),
+                    return GridView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: videos.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: aspectRatio,
                       ),
-                    );
-                  },
-                  onLongPress: () => showVideoActionPopup(v),
-                  child: Hero(
-                    tag: v["video"],
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            blurRadius: 10,
-                            color: Colors.black.withOpacity(0.1),
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: Image.network(
-                                      thumbUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
+                      itemBuilder: (context, i) {
+                        final v = videos[i];
+                        final thumbUrl = imageUrl(v["thumbnail"]);
+                        final videoUrlPath = videoUrl(v["video"]);
+
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PlayerPage(
+                                  url: videoUrlPath,
+                                  title: v["title"],
+                                ),
+                              ),
+                            );
+                          },
+                          onLongPress: () => showVideoActionPopup(v),
+                          child: Hero(
+                            tag: v["video"],
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    blurRadius: 10,
+                                    color: Colors.black.withOpacity(0.1),
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      flex: 3,
+                                      child: Stack(
+                                        children: [
+                                          Positioned.fill(
+                                            child: Image.network(
+                                              thumbUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) =>
+                                                      Container(
                                                 color: Colors.grey.shade300,
                                                 child: const Center(
                                                   child: Icon(
@@ -354,119 +350,120 @@ class _VideoGalleryPageState extends State<VideoGalleryPage> {
                                                   ),
                                                 ),
                                               ),
-                                    ),
-                                  ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                        colors: [
-                                          Colors.transparent,
-                                          Colors.black.withOpacity(0.4),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  Center(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: Colors.white.withOpacity(0.9),
-                                      ),
-                                      padding: const EdgeInsets.all(12),
-                                      child: const Icon(
-                                        Icons.play_arrow_rounded,
-                                        size: 40,
-                                        color: Colors.indigo,
-                                      ),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 8,
-                                    right: 8,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.6),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.videocam,
-                                            size: 12,
-                                            color: Colors.white,
+                                            ),
                                           ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            "Video",
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.white,
+                                          Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [
+                                                  Colors.transparent,
+                                                  Colors.black.withOpacity(0.4),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Center(
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Colors.white.withOpacity(0.9),
+                                              ),
+                                              padding: const EdgeInsets.all(12),
+                                              child: const Icon(
+                                                Icons.play_arrow_rounded,
+                                                size: 40,
+                                                color: Colors.indigo,
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 8,
+                                            right: 8,
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.black.withOpacity(0.6),
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.videocam,
+                                                    size: 12,
+                                                    color: Colors.white,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    "Video",
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    v["title"],
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            v["title"],
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.access_time,
+                                                size: 12,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "Tap to play",
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.grey.shade500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.access_time,
-                                        size: 12,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        "Tap to play",
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey.shade500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final res = await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const UploadPage()),
           );
-
           if (res == true) {
             fetch();
           }
@@ -490,10 +487,8 @@ class UploadPage extends StatefulWidget {
 
 class _UploadPageState extends State<UploadPage> {
   final title = TextEditingController();
-
   PlatformFile? thumb;
   PlatformFile? video;
-
   bool loading = false;
 
   Future pickThumb() async {
@@ -501,11 +496,8 @@ class _UploadPageState extends State<UploadPage> {
       type: FileType.image,
       withData: true,
     );
-
     if (result != null) {
-      setState(() {
-        thumb = result.files.first;
-      });
+      setState(() => thumb = result.files.first);
     }
   }
 
@@ -514,11 +506,8 @@ class _UploadPageState extends State<UploadPage> {
       type: FileType.video,
       withData: true,
     );
-
     if (result != null) {
-      setState(() {
-        video = result.files.first;
-      });
+      setState(() => video = result.files.first);
     }
   }
 
@@ -540,9 +529,7 @@ class _UploadPageState extends State<UploadPage> {
         "POST",
         Uri.parse("${baseUrl}add_data.php"),
       );
-
       req.fields["title"] = title.text;
-
       req.files.add(
         http.MultipartFile.fromBytes(
           "thumbnail",
@@ -550,7 +537,6 @@ class _UploadPageState extends State<UploadPage> {
           filename: thumb!.name,
         ),
       );
-
       req.files.add(
         http.MultipartFile.fromBytes(
           "video",
@@ -561,32 +547,29 @@ class _UploadPageState extends State<UploadPage> {
 
       var res = await req.send();
       var responseData = await res.stream.bytesToString();
-      // Cek jika responseData bukan JSON (misal error HTML)
+
       if (responseData.trim().startsWith('<')) {
-        debugPrint("UPLOAD ERROR: Server mengembalikan HTML, bukan JSON.\n$responseData");
+        debugPrint("UPLOAD ERROR: HTML response\n$responseData");
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Upload gagal: Server error atau endpoint salah. Cek koneksi dan API upload_data.php."),
+          const SnackBar(
+            content: Text("Upload gagal: Server error atau endpoint salah."),
             backgroundColor: Colors.red,
           ),
         );
         setState(() => loading = false);
         return;
       }
+
       var responseJson = json.decode(responseData);
-
       if (!mounted) return;
-
-      print("Upload response: $responseJson"); // Debug
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (isPlaceholderApiInfo(responseJson)) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                "Server belum menjalankan upload_data.php (hanya balasan \"API aktif\"). "
-                "Data tidak tersimpan di database.",
+                "Server belum menjalankan add_data.php (hanya balasan info API).",
               ),
               backgroundColor: Colors.red,
             ),
@@ -625,7 +608,6 @@ class _UploadPageState extends State<UploadPage> {
         ),
       );
     }
-
     setState(() => loading = false);
   }
 
@@ -651,10 +633,7 @@ class _UploadPageState extends State<UploadPage> {
                   Expanded(
                     child: Text(
                       "Pastikan file yang diupload sesuai format yang didukung",
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.indigo.shade700,
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.indigo.shade700),
                     ),
                   ),
                 ],
@@ -666,20 +645,14 @@ class _UploadPageState extends State<UploadPage> {
               decoration: InputDecoration(
                 labelText: "Judul Video",
                 hintText: "Masukkan judul video",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.title),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               "Thumbnail",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.grey.shade700,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             Container(
@@ -688,16 +661,10 @@ class _UploadPageState extends State<UploadPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
-                leading: Icon(
-                  Icons.image,
-                  color: thumb != null ? Colors.green : Colors.grey,
-                ),
+                leading: Icon(Icons.image, color: thumb != null ? Colors.green : Colors.grey),
                 title: Text(
                   thumb?.name ?? "Pilih Thumbnail",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: thumb != null ? Colors.black87 : Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: thumb != null ? Colors.black87 : Colors.grey),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -705,22 +672,14 @@ class _UploadPageState extends State<UploadPage> {
                   onPressed: pickThumb,
                   icon: const Icon(Icons.folder_open, size: 18),
                   label: const Text("Pilih"),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                 ),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               "File Video",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: Colors.grey.shade700,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             Container(
@@ -729,16 +688,10 @@ class _UploadPageState extends State<UploadPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: ListTile(
-                leading: Icon(
-                  Icons.video_file,
-                  color: video != null ? Colors.green : Colors.grey,
-                ),
+                leading: Icon(Icons.video_file, color: video != null ? Colors.green : Colors.grey),
                 title: Text(
                   video?.name ?? "Pilih Video",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: video != null ? Colors.black87 : Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: video != null ? Colors.black87 : Colors.grey),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -746,11 +699,7 @@ class _UploadPageState extends State<UploadPage> {
                   onPressed: pickVideo,
                   icon: const Icon(Icons.folder_open, size: 18),
                   label: const Text("Pilih"),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                  style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                 ),
               ),
             ),
@@ -760,33 +709,16 @@ class _UploadPageState extends State<UploadPage> {
               height: 50,
               child: ElevatedButton(
                 onPressed: loading ? null : upload,
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
+                style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 child: loading
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                       )
-                    : const Text(
-                        "UPLOAD VIDEO",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    : const Text("UPLOAD VIDEO", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -798,7 +730,6 @@ class _UploadPageState extends State<UploadPage> {
 
 class EditPage extends StatefulWidget {
   final Map video;
-
   const EditPage({super.key, required this.video});
 
   @override
@@ -814,9 +745,7 @@ class _EditPageState extends State<EditPage> {
   @override
   void initState() {
     super.initState();
-    title = TextEditingController(
-      text: (widget.video["title"] ?? "").toString(),
-    );
+    title = TextEditingController(text: (widget.video["title"] ?? "").toString());
   }
 
   @override
@@ -826,38 +755,19 @@ class _EditPageState extends State<EditPage> {
   }
 
   Future pickThumb() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
-
-    if (result != null) {
-      setState(() {
-        thumb = result.files.first;
-      });
-    }
+    final result = await FilePicker.pickFiles(type: FileType.image, withData: true);
+    if (result != null) setState(() => thumb = result.files.first);
   }
 
   Future pickVideo() async {
-    final result = await FilePicker.pickFiles(
-      type: FileType.video,
-      withData: true,
-    );
-
-    if (result != null) {
-      setState(() {
-        video = result.files.first;
-      });
-    }
+    final result = await FilePicker.pickFiles(type: FileType.video, withData: true);
+    if (result != null) setState(() => video = result.files.first);
   }
 
   Future update() async {
     if (title.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Judul video wajib diisi"),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text("Judul video wajib diisi"), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -865,32 +775,15 @@ class _EditPageState extends State<EditPage> {
     setState(() => loading = true);
 
     try {
-      final req = http.MultipartRequest(
-        "POST",
-        Uri.parse("${baseUrl}update_data.php"),
-      );
-
+      final req = http.MultipartRequest("POST", Uri.parse("${baseUrl}update_data.php"));
       req.fields["id"] = widget.video["id"].toString();
       req.fields["title"] = title.text.trim();
 
       if (thumb != null) {
-        req.files.add(
-          http.MultipartFile.fromBytes(
-            "thumbnail",
-            thumb!.bytes!,
-            filename: thumb!.name,
-          ),
-        );
+        req.files.add(http.MultipartFile.fromBytes("thumbnail", thumb!.bytes!, filename: thumb!.name));
       }
-
       if (video != null) {
-        req.files.add(
-          http.MultipartFile.fromBytes(
-            "video",
-            video!.bytes!,
-            filename: video!.name,
-          ),
-        );
+        req.files.add(http.MultipartFile.fromBytes("video", video!.bytes!, filename: video!.name));
       }
 
       final res = await req.send();
@@ -902,43 +795,26 @@ class _EditPageState extends State<EditPage> {
       if (res.statusCode == 200 || res.statusCode == 201) {
         if (isPlaceholderApiInfo(responseJson)) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Server belum menjalankan update_data.php sungguhan — tidak ada perubahan di DB.",
-              ),
-              backgroundColor: Colors.red,
-            ),
+            const SnackBar(content: Text("Server hanya mengembalikan info API — tidak ada update nyata."), backgroundColor: Colors.red),
           );
         } else if (responseJson["success"] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Data berhasil diupdate"),
-              backgroundColor: Colors.green,
-            ),
+            const SnackBar(content: Text("Data berhasil diupdate"), backgroundColor: Colors.green),
           );
           Navigator.pop(context, true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(responseJson["message"] ?? "Gagal update"),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(responseJson["message"] ?? "Gagal update"), backgroundColor: Colors.red),
           );
         }
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Gagal update data: $e"),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text("Gagal update data: $e"), backgroundColor: Colors.red),
       );
     }
-
-    if (mounted) {
-      setState(() => loading = false);
-    }
+    if (mounted) setState(() => loading = false);
   }
 
   @override
@@ -955,29 +831,18 @@ class _EditPageState extends State<EditPage> {
               decoration: InputDecoration(
                 labelText: "Judul Video",
                 hintText: "Masukkan judul video",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.title),
               ),
             ),
             const SizedBox(height: 20),
             Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(
-                  Icons.image,
-                  color: thumb != null ? Colors.green : Colors.grey,
-                ),
+                leading: Icon(Icons.image, color: thumb != null ? Colors.green : Colors.grey),
                 title: Text(
                   thumb?.name ?? "Ganti Thumbnail (opsional)",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: thumb != null ? Colors.black87 : Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: thumb != null ? Colors.black87 : Colors.grey),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -990,21 +855,12 @@ class _EditPageState extends State<EditPage> {
             ),
             const SizedBox(height: 16),
             Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: Icon(
-                  Icons.video_file,
-                  color: video != null ? Colors.green : Colors.grey,
-                ),
+                leading: Icon(Icons.video_file, color: video != null ? Colors.green : Colors.grey),
                 title: Text(
                   video?.name ?? "Ganti Video (opsional)",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: video != null ? Colors.black87 : Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 14, color: video != null ? Colors.black87 : Colors.grey),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1025,20 +881,9 @@ class _EditPageState extends State<EditPage> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Colors.white)),
                       )
-                    : const Text(
-                        "SIMPAN PERUBAHAN",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                    : const Text("SIMPAN PERUBAHAN", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -1053,7 +898,6 @@ class _EditPageState extends State<EditPage> {
 class PlayerPage extends StatefulWidget {
   final String url;
   final String title;
-
   const PlayerPage({super.key, required this.url, required this.title});
 
   @override
@@ -1069,15 +913,11 @@ class _PlayerPageState extends State<PlayerPage> {
     super.initState();
     controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
       ..initialize().then((_) {
-        setState(() {
-          isInitialized = true;
-        });
+        setState(() => isInitialized = true);
         controller.play();
       }).catchError((error) {
         print("Error initializing video: $error");
-        setState(() {
-          isInitialized = true;
-        });
+        setState(() => isInitialized = true);
       });
   }
 
@@ -1101,30 +941,21 @@ class _PlayerPageState extends State<PlayerPage> {
           Center(
             child: isInitialized
                 ? controller.value.isInitialized
-                    ? AspectRatio(
-                        aspectRatio: controller.value.aspectRatio,
-                        child: VideoPlayer(controller),
-                      )
+                    ? AspectRatio(aspectRatio: controller.value.aspectRatio, child: VideoPlayer(controller))
                     : const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.error_outline, size: 50, color: Colors.red),
                           SizedBox(height: 16),
-                          Text(
-                            "Gagal memuat video",
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          Text("Gagal memuat video", style: TextStyle(color: Colors.white)),
                         ],
                       )
                 : const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,  
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       CircularProgressIndicator(),
                       SizedBox(height: 16),
-                      Text(
-                        "Memuat video...",
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      Text("Memuat video...", style: TextStyle(color: Colors.white)),
                     ],
                   ),
           ),
@@ -1133,17 +964,10 @@ class _PlayerPageState extends State<PlayerPage> {
               bottom: 20,
               right: 20,
               child: FloatingActionButton(
-                onPressed: () {
-                  setState(() {
-                    controller.value.isPlaying
-                        ? controller.pause()
-                        : controller.play();
-                  });
-                },
-                child: Icon(
-                  controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                  size: 30,
-                ),
+                onPressed: () => setState(() {
+                  controller.value.isPlaying ? controller.pause() : controller.play();
+                }),
+                child: Icon(controller.value.isPlaying ? Icons.pause : Icons.play_arrow, size: 30),
               ),
             ),
         ],
